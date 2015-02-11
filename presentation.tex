@@ -1,0 +1,94 @@
+\documentclass{beamer}
+
+\usepackage{default}
+\usepackage{multirow}
+\usepackage{geometry}
+\usepackage{changepage}
+
+\usetheme{Berlin}
+
+\begin{document}
+\title{Task scheduling for dual-arm industrial robots through constraint programming}
+\subtitle{MiniZinc modeling and solver comparison}
+\author{Tommy Kvant}
+\institute{Institute of Computer Science\\Lund University}
+\subject{Computer Science}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+
+\section{Introduction}
+\frame{
+	\frametitle{Introduction}
+}
+
+\subsection{YuMi\textsuperscript\textregistered}
+\frame{
+	\frametitle{Introduction - YuMi\textsuperscript\textregistered}
+}
+
+\subsection{MiniZinc}
+\frame{
+	\frametitle{Introduction - MiniZinc}
+}
+
+\subsection{Solvers}
+\frame{
+	\frametitle{Introduction - Solvers}
+}
+
+\subsection{Project goal}
+\frame{
+	\frametitle{Introduction - Project goal}
+}
+
+\section{Case Study}
+\frame{
+	\frametitle{Case Study}
+}
+
+\section{Model}
+\frame{
+	\frametitle{Model}
+}
+
+\subsection{Filter}
+\frame{
+	\frametitle{Filter}
+}
+
+\section{Evaluation}
+\frame{
+	\frametitle{Evaluation}
+}
+
+\subsection{Results}
+\frame{
+	\frametitle{Results}
+
+
+	\begin{table}
+	\begin{adjustwidth}{-0.5cm}{}
+	\small
+	\begin{tabular}{l|c|c|c|c|c|c|c|c|}
+	\cline{2-9}
+	                                    & \multicolumn{2}{c|}{Pred \& Temp} &\multicolumn{2}{c|}{Pred} & \multicolumn{2}{c|}{Temp} & \multicolumn{2}{c|}{None} \\ \cline{2-9}
+	                                   & 1.6 & 2.0.1                      & 1.6     & 2.0.1         & 1.6 & 2.0.1              & 1.6 & 2.0.1              \\ \hline
+	\multicolumn{1}{|l|}{G12/FD}       & -   & -                          & -       & -             & -   & -                  & -   &-                   \\
+	\multicolumn{1}{|l|}{JaCoP}        & 658 & -                          & 1011156 & -             & -   & -                  & -   & -                  \\
+	\multicolumn{1}{|l|}{Gecode}       & -   & 60                         & -       & 71761         & -   & 99                 & -   & 70925              \\
+	\multicolumn{1}{|l|}{or-tools}     & 271 & !                          & 380     & !             & 302 & !                  & 457 & !                  \\ 
+	\multicolumn{1}{|l|}{Opturion CPX} & -   & !                          & -       & !             & -   & !                  & -   & !                  \\
+	\multicolumn{1}{|l|}{Choco3}       & -   & -                          & -       & -             & -   & -                  & -   & -                  \\ \hline
+	\end{tabular}
+	\end{adjustwidth}
+	\end{table}
+
+
+}
+
+\end{document}

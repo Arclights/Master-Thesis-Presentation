@@ -1,34 +1,80 @@
 \documentclass{beamer}
 
+\usepackage[utf8]{inputenc}
 \usepackage{default}
 \usepackage{multirow}
 \usepackage{geometry}
 \usepackage{changepage}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{calc, shapes, backgrounds, positioning, matrix, shapes.multipart}
+\usepackage{multimedia}
 
-\usetheme{Berlin}
+\usetheme[compress]{Berlin}
+
+\usepackage{pgfpages}
+\setbeameroption{show notes}
+%\setbeameroption{show notes on second screen=right}
+
+\usebackgroundtemplate
+{%
+\tikz[overlay,remember picture] \node[opacity=0.3, at=(current page.south east), xshift=-1cm, yshift=1cm] {
+    \includegraphics[width=0.4\paperwidth, keepaspectratio, clip, trim= 0 55mm 0 0]{Images/LundUniversity_C2line_RGB.png}
+};
+}
+
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+
+
+\tikzstyle{task} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=white]
+\tikzstyle{arrow} = [thick,->,>=stealth]
 
 \begin{document}
 \title{Task scheduling for dual-arm industrial robots through constraint programming}
 \subtitle{MiniZinc modeling and solver comparison}
 \author{Tommy Kvant}
-\institute{Institute of Computer Science\\Lund University}
+\institute{Institute of Computer Science\\ Lund University}
 \subject{Computer Science}
+
 
 \frame{\titlepage}
 
 \begin{frame}
-\frametitle{Table of Contents}
+\frametitle{Outline}
 \tableofcontents
 \end{frame}
 
 \section{Introduction}
-\frame{
-	\frametitle{Introduction}
-}
 
 \subsection{YuMi\textsuperscript\textregistered}
 \frame{
 	\frametitle{Introduction - YuMi\textsuperscript\textregistered}
+	\begin{columns}[C] % contents are top vertically aligned
+		\begin{column}[C]{5cm} % each column can also be its own environment
+			\begin{itemize}
+				\item Dual-armed robot
+				\item Flexible
+				\item Fine motor skills
+			\end{itemize}
+		\end{column}
+		\begin{column}[C]{5cm} % alternative top-align that's better for graphics
+			\begin{figure}
+				\includegraphics[height=4cm]{Images/YuMi.jpg}
+				\caption{Photo: ABB}
+			\end{figure}
+		   
+		\end{column}
+	\end{columns}
+}
+
+\subsection{Project goal}
+\frame{
+	\frametitle{Introduction - Project goal}
+}
+
+\subsection{Job Shop Problem}
+\frame{
+	\frametitle{Introduction - Job Shop Problem}
 }
 
 \subsection{MiniZinc}
@@ -38,17 +84,167 @@
 
 \subsection{Solvers}
 \frame{
-	\frametitle{Introduction - Solvers}
+	\frametitle{Criteria}
+		\begin{itemize}
+			\item FlatZinc parser
+			\item Free
+		\end{itemize}
 }
 
-\subsection{Project goal}
 \frame{
-	\frametitle{Introduction - Project goal}
+	\frametitle{Solvers Tested}
+		\begin{itemize}
+			\item G12/FD
+			\item JaCoP
+			\item Gecode
+			\item or-tools
+			\item Opturion CPX
+			\item Choco3
+		\end{itemize}
 }
+
+\frame{
+	\frametitle{G12/FD}
+	\begin{itemize}
+		\item G12 Team, NICTA
+		\item Mercury
+		\item Default solver for MiniZinc
+	\end{itemize}
+
+}
+
+\frame{
+	\frametitle{JaCoP}
+	\begin{itemize}
+		\item Java Constraint Programming solver 
+		\item Open Source
+		\item Developed since 2001 - Krzysztof Kuchcinski \& Radoslaw Szymanek
+		\item Silver medal
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Gecode}
+	\begin{itemize}
+		\item C++
+		\item Open Source
+		\item Christian Schulte
+			\note[item]{Christian Schulte: lett utvecklingen, många andra som bidragit}
+		\item Parallel searches - utilising multiple cores 
+		\item All gold medals 2008-2012
+			\note[item]{All gold medals 2008-2012: i alla kategorier}
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{or-tools}
+	\begin{itemize}
+		\item C++
+		\item Google - Operational Research
+		\item Open Source
+		\item Utilising multiple cores
+			\note[item]{Utilising multiple cores: Inte säker om parallell sökning, nämns i dokumentationen som "parrallel sovling", explicit utesluten ur dokumentationen}
+		\item Gold medals 2013-2014
+	\end{itemize}
+}
+
+
+\frame{
+	\frametitle{Opturion CPX}
+	\begin{itemize}
+		\item Opturion Pty Ltd
+			\note[item]{Opturion Pty Ltd: Härstammar från G12}
+		\item Commercial
+			\note[item]{Commercial: kostar, akademisk licens}
+		\item SAT combo
+			\note[item]{SAT combo: FD + SAT, SAT = satslogik, väldigt effektiv på att lösa stora problem, sägs att satslogik -> sökning inte slöas ner av stora domäner}
+		\item Gold medals 2013, all silver medals 2014
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Choco3}
+	\begin{itemize}
+		\item Java
+		\item Open Source
+		\item Developed since early 2000 - Jean-Guillaume Fages \& Charles Prud'homme
+		\item Not same as predecessor Choco2
+	\end{itemize}
+}
+
+
 
 \section{Case Study}
 \frame{
 	\frametitle{Case Study}
+	\movie[poster]{}{assembly.mp4}
+}
+
+\frame{
+	\frametitle{Case Study}
+	\begin{figure}
+		\resizebox{\textwidth}{0.8\textheight}{
+			\begin{tikzpicture}[node distance=2cm]
+			\node (1) [task] {Take top};
+			\node (2) [task, right of=1, xshift=2.5cm] {Put top in fixture};
+			
+			\node (3) [task, below of=1] {Take button};
+			\node (4) [task, below of=2] {Mount button on top};
+			
+			\node (5) [task, xshift=2.5cm, right of=4] {Angle top-button};
+			
+			\node (6) [task, right of=5, xshift=3cm, yshift=1cm] {Lift top-button, hold};
+			\node (7) [task, below of=6] {Lift top-button, support};
+			
+			\node (8) [task, right of=7, xshift=3.5cm, yshift=1cm] {Turn top-button};
+			
+			\node (10) [task, below of=8] {Mount ring, hold};
+			\node (11) [task, below of=10] {Mount ring, mount};
+			
+			\node (9) [task, below of=11] {Take ring};
+			
+			\node (12) [task, left of=11, xshift=-4cm, yshift=1cm] {Fixate top-button-ring};
+			
+			\node (13) [task, left of=12, xshift=-9.5cm] {Put top-button-ring in top tray};
+			\node (14) [task, below of=13] {Take top-button-ring from top tray};
+			
+			\node (15) [task, below of=9, yshift=-1.5cm] {Take switch};
+			\node (16) [task, left of=15, xshift=-3cm] {Mount switch};
+			
+			\node (17) [task, below of=15] {Take bottom};
+			\node (18) [task, below of=16] {Put button in fixture};
+			
+			\node (19) [task, left of=16, xshift=-3.5cm] {Take button-switch};
+			
+			\node (20) [task, left of=19, xshift=-5cm] {Put bottom-switch on table};
+			
+			\node (21) [task, above of=20] {Mount top-button-ring on bottom-switch};
+			
+			\draw [arrow] (1) -- (2);
+			\draw [arrow] (3) -- (4);
+			\draw [arrow] (2) -- (4);
+			\draw [arrow] (4) -- (5);
+			\draw [arrow] (5) -- (6);
+			\draw [arrow] (5) -- (7);
+			\draw [arrow] (7) -- (8);
+			\draw [arrow] (6) -- (8);
+			\draw [arrow] (8) -- (10);
+			\draw [arrow] (10) -- (12);
+			\draw [arrow] (9) -- (11);
+			\draw [arrow] (11) -- (12);
+			\draw [arrow] (12) -- (13);
+			\draw [arrow] (13) -- (14);
+			\draw [arrow] (15) -- (16);
+			\draw [arrow] (17) -- (18);
+			\draw [arrow] (18) -- (16);
+			\draw [arrow] (16) -- (19);
+			\draw [arrow] (19) -- (20);
+			\draw [arrow] (20) -- (21);
+			\draw [arrow] (14) -- (21);
+			
+			\end{tikzpicture}
+		}
+	\end{figure}
 }
 
 \section{Model}

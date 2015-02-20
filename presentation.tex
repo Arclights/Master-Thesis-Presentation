@@ -85,109 +85,19 @@
 	\frametitle{Introduction - Project goal}
 }
 
-\subsection{Job Shop Problem}
-\frame{
-	\frametitle{Introduction - Job Shop Problem}
-}
-
 \subsection{MiniZinc}
 \frame{
 	\frametitle{Introduction - MiniZinc}
 }
 
-\subsection{Solvers}
-\frame{
-	\frametitle{Criteria}
-		\begin{itemize}
-			\item FlatZinc parser
-			\item Free
-		\end{itemize}
-}
-
-\frame{
-	\frametitle{Solvers Tested}
-		\begin{itemize}
-			\item G12/FD
-			\item JaCoP
-			\item Gecode
-			\item or-tools
-			\item Opturion CPX
-			\item Choco3
-		\end{itemize}
-}
-
-\frame{
-	\frametitle{G12/FD}
-	\begin{itemize}
-		\item G12 Team, NICTA
-		\item Mercury
-		\item Default solver for MiniZinc
-	\end{itemize}
-
-}
-
-\frame{
-	\frametitle{JaCoP}
-	\begin{itemize}
-		\item Java Constraint Programming solver 
-		\item Open Source
-		\item Developed since 2001 - Krzysztof Kuchcinski \& Radoslaw Szymanek
-		\item Silver medal
-	\end{itemize}
-}
-
-\frame{
-	\frametitle{Gecode}
-	\begin{itemize}
-		\item C++
-		\item Open Source
-		\item Christian Schulte
-			\note[item]{Christian Schulte: lett utvecklingen, många andra som bidragit}
-		\item Parallel searches - utilising multiple cores 
-		\item All gold medals 2008-2012
-			\note[item]{All gold medals 2008-2012: i alla kategorier}
-	\end{itemize}
-}
-
-\frame{
-	\frametitle{or-tools}
-	\begin{itemize}
-		\item C++
-		\item Google - Operational Research
-		\item Open Source
-		\item Utilising multiple cores
-			\note[item]{Utilising multiple cores: Inte säker om parallell sökning, nämns i dokumentationen som "parrallel sovling", explicit utesluten ur dokumentationen}
-		\item Gold medals 2013-2014
-	\end{itemize}
-}
-
-
-\frame{
-	\frametitle{Opturion CPX}
-	\begin{itemize}
-		\item Opturion Pty Ltd
-			\note[item]{Opturion Pty Ltd: Härstammar från G12}
-		\item Commercial
-			\note[item]{Commercial: kostar, akademisk licens}
-		\item SAT combo
-			\note[item]{SAT combo: FD + SAT, SAT = satslogik, väldigt effektiv på att lösa stora problem, sägs att satslogik -> sökning inte slöas ner av stora domäner}
-		\item Gold medals 2013, all silver medals 2014
-	\end{itemize}
-}
-
-\frame{
-	\frametitle{Choco3}
-	\begin{itemize}
-		\item Java
-		\item Open Source
-		\item Developed since early 2000 - Jean-Guillaume Fages \& Charles Prud'homme
-		\item Not same as predecessor Choco2
-	\end{itemize}
-}
-
-
-
 \section{Case Study}
+\frame{
+	\frametitle{Case Study}
+	\includegraphics[width=\textwidth]{Images/buttonbox.png}
+	\note{Skruvarna inte med}
+}
+
+
 \frame{
 	\frametitle{Case Study}
 	\movie[height = 0.6 \textwidth,width = 1.0 \textwidth]{}{assembly.mp4}
@@ -279,6 +189,19 @@
 \subsection{Tasks}
 \frame{
 	\frametitle{Model}
+	Job Shop Problem
+	\begin{itemize}
+		\item $n$ jobs, varying size
+		\item $m$ identical machines
+		\item NP-complete for $m\geq2$ and $n\geq3$
+	\end{itemize}
+	\note{
+	\begin{itemize}
+		\item Vill schemalägg tasks som ett job shop problem
+		\item I literatur jobs innehåller operations, här tittar vi på 1 job och operations kallar vi tasks
+		\item Varje jobb can hanteras av vilken maskin som helst $\rightarrow$ Flexible Job Shop Scheduling
+	\end{itemize}
+	}
 }
 
 \frame{
@@ -292,9 +215,9 @@
 	\end{tikzpicture}
 	\note{
 		\begin{itemize}
-			\item Vi vill schemalägga tasks
 			\item En task kommer efter den andra
 			\item Men tasks:en sker på olika ställen i rummet $\rightarrow$ det tar tid att flytta sig mellan dem $\rightarrow$ måste räkna med det
+			\item 
 		\end{itemize}
 	}
 }
@@ -316,6 +239,33 @@
 	}
 	\note{
 		\begin{itemize}
+			\item Tasks behöver olika tools $\rightarrow$ måste utföra tool change
+			\item utförs mellan två tasks $\rightarrow$ tiden att röra sig mellan två tasks tar längre tid $\rightarrow$ bakar in tool change tiden i move
+			\item Det förekommer ett tool change om tiden för move tar längre tid än det egentligen skulle göra
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2};
+		\node (mt3) [task, minimum width=3cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3};
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4};
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5};
+		
+		\node(expl) [below = of mt3, yshift=-1cm]{Tool change}
+		edge [arrow] (mt3);
+	\end{tikzpicture}
+	}
+	\note{
+		\begin{itemize}
 			\item Hur lång tid det tar beror på vilken task som kommer innan $\rightarrow$ vi måste veta vilken task som kommer innan, \emph{predecessor}
 		\end{itemize}
 	}
@@ -329,7 +279,7 @@
 		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
 		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2}
 		edge[arrow, bend right=60] (t1);
-		\node (mt3) [task, minimum width=2cm, right = of t2] {Move};
+		\node (mt3) [task, minimum width=3cm, right = of t2] {Move};
 		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3}
 		edge[arrow, bend right=60] (t2);
 		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
@@ -338,10 +288,14 @@
 		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
 		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5}
 		edge[arrow, bend right=60] (t4);
+				
+		\node(expl) [below = of mt3, yshift=-1cm]{Tool change}
+		edge [arrow] (mt3);
 	\end{tikzpicture}
 	}
 	\note{
 	\begin{itemize}
+		\item Detta = Job Shop Problem with sequence-dependent setup times
 		\item För att se till att detta uppfylls kan constraintet \texttt{circuit} användas
 		\item Skapar en Hamiltonian circuit
 		\item Uppnår det genom att koppla ihop första och sista noden. \item Constraint som säger att task måste komma efter sin predecessor $\rightarrow$ Första och sista task:en kan inte kopplas ihop
@@ -360,7 +314,7 @@
 		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
 		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2}
 		edge[arrow, bend right=60] (t1);
-		\node (mt3) [task, minimum width=2cm, right = of t2] {Move};
+		\node (mt3) [task, minimum width=3cm, right = of t2] {Move};
 		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3}
 		edge[arrow, bend right=60] (t2);
 		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
@@ -373,12 +327,16 @@
 		\node (bucket) [task, minimum width=2cm, right = of mbucket] {Bucket}
 		edge[arrow, bend right=60] (t5)
 		edge[reversearrow, bend left=50] (sink);
+		
+				
+		\node(expl) [below = of mt3, yshift=-1cm]{Tool change}
+		edge [arrow] (mt3);
 	\end{tikzpicture}
 	}
 	\note{
 	\begin{itemize}
 		\item Introducerar sink node/startTask \& bucket node/goalTask
-		\item Hintintills 4 saker att schemalägga: tasks, moves, predecessors \& sink/bucket
+		\item Hintintills 3 saker att schemalägga: tasks, moves, predecessors
 		\item Men detta måste göras för varje mackin, tasks måste fördelas
 	\end{itemize}
 	}
@@ -1060,7 +1018,6 @@
 
 \frame{
 	\frametitle{Concurrent group}
-	\frametitle{Ordered group}
 	\begin{adjustwidth}{-0.5cm}{}
 		\begin{figure}
 			\resizebox{\textwidth}{0.8\textheight}{
@@ -1085,7 +1042,7 @@
 				
 				\node (12) [task, left of=11, xshift=-4cm, yshift=1cm] {Fixate top-button-nut};
 				
-				\node (13) [task, left of=12, xshift=-9.5cm, fill=cyan!50] {Put top-button-nut in top tray};
+				\node (13) [task, left of=12, xshift=-9.5cm] {Put top-button-nut in top tray};
 				\node (14) [task, below of=13] {Take top-button-nut from top tray};
 				
 				\node (15) [task, below of=9, yshift=-1.5cm] {Take switch};
@@ -1135,19 +1092,129 @@
 	\item Temporal filter
 	\item Predecessor filter
 	\end{itemize}
-}
-
-\frame{
-	\frametitle{Temporal Filter}
-}
-
-\frame{
-	\frametitle{Predecessor Filter}
+	\note{
+	\footnotesize
+		Temporal filter:
+		\begin{itemize}
+			\item Tider för move mellan tasks vet vi genom att en tidsmatris tillhandahålls av den som vill schemalägga
+			\item Den tillsammans med tiderna för att byta mellan tools = ny matris med alla möjliga moves inkl. tool change
+			\item $\rightarrow$ vi kan räkna ut värsta och bästa fallet för hela assemblyn
+			\item mha. detta kan vi begränsa startTime för tasks
+		\end{itemize}
+		
+		Predecessor filter:
+		\begin{itemize}
+			\item Vi vet att put och mount tasks inte kan komma först, då komponenten måste plockas upp först $\rightarrow pred(putTask/mountTask)\neq startTask$
+			\item Då allting måste sitta i outputs i slutet av assemblyn $\rightarrow pred(goalTask)\neq takeTask$
+			\item Tasks som använder components som är sub-components i en annan task måste ske innan den tasken $\rightarrow$ inte ha den som predecessor
+		\end{itemize}
+		
+	}
 }
 
 \section{Evaluation}
 \frame{
 	\frametitle{Evaluation}
+	\begin{itemize}
+		\item Test with 6 solvers
+		\item MiniZinc 1.6 \& 2.0.1
+		\item Combination of filters
+	\end{itemize}
+	
+}
+
+\subsection{Solvers}
+\frame{
+	\frametitle{Criteria}
+		\begin{itemize}
+			\item FlatZinc parser
+			\item Free
+		\end{itemize}
+}
+
+\frame{
+	\frametitle{Solvers Tested}
+		\begin{itemize}
+			\item G12/FD
+			\item JaCoP
+			\item Gecode
+			\item or-tools
+			\item Opturion CPX
+			\item Choco3
+		\end{itemize}
+}
+
+\frame{
+	\frametitle{G12/FD}
+	\begin{itemize}
+		\item G12 Team, NICTA
+		\item Mercury
+		\item Default solver for MiniZinc
+	\end{itemize}
+	\note{
+		\begin{itemize}
+			\item NICTA: National ICT Australia, Australia’s Information Communications Technology (ICT) Research Centre, störst
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{JaCoP}
+	\begin{itemize}
+		\item Java Constraint Programming solver 
+		\item Open Source
+		\item Developed since 2001 - Krzysztof Kuchcinski \& Radoslaw Szymanek
+		\item Silver medal
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Gecode}
+	\begin{itemize}
+		\item C++
+		\item Open Source
+		\item Christian Schulte
+			\note[item]{Christian Schulte: lett utvecklingen, många andra som bidragit}
+		\item Parallel searches - utilising multiple cores 
+		\item All gold medals 2008-2012
+			\note[item]{All gold medals 2008-2012: i alla kategorier}
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{or-tools}
+	\begin{itemize}
+		\item C++
+		\item Google - Operational Research
+		\item Open Source
+		\item Utilising multiple cores
+			\note[item]{Utilising multiple cores: Inte säker om parallell sökning, nämns i dokumentationen som "parrallel sovling", explicit utesluten ur dokumentationen}
+		\item Gold medals 2013-2014
+	\end{itemize}
+}
+
+
+\frame{
+	\frametitle{Opturion CPX}
+	\begin{itemize}
+		\item Opturion Pty Ltd
+			\note[item]{Opturion Pty Ltd: Härstammar från G12}
+		\item Commercial
+			\note[item]{Commercial: kostar, akademisk licens}
+		\item SAT combo
+			\note[item]{SAT combo: FD + SAT, SAT = satslogik, väldigt effektiv på att lösa stora problem, sägs att satslogik $\rightarrow$ sökning inte slöas ner av stora domäner}
+		\item Gold medals 2013, all silver medals 2014
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Choco3}
+	\begin{itemize}
+		\item Java
+		\item Open Source
+		\item Developed since early 2000 - Jean-Guillaume Fages \& Charles Prud'homme
+		\item Not same as predecessor Choco2
+	\end{itemize}
 }
 
 \subsection{Results}
@@ -1191,6 +1258,14 @@
 	\end{tabular}
 	\end{adjustwidth}
 	\end{table}
+	
+	\note<1>{
+		\begin{itemize}
+			\item 1011156 - 0:16:51
+			\item 71761 - 0:01:11
+			\item 71186 - 0:01:11
+		\end{itemize}
+	}
 
 \note<2>{
 Hittar lösning, inte optimal

@@ -2,6 +2,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{default}
+\usepackage{amsmath}
 \usepackage{multirow}
 \usepackage{geometry}
 \usepackage{changepage}
@@ -38,6 +39,7 @@
 
 \tikzstyle{task} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=white]
 \tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{reversearrow} = [thick,<-,>=stealth]
 
 \begin{document}
 \title{Task scheduling for dual-arm industrial robots through constraint programming}
@@ -192,10 +194,11 @@
 }
 
 \frame{
-	\frametitle{Entities}
+	\frametitle{Physical Entities}
 	\begin{itemize}
 		\item Machines
 		\item Tools
+		\item Components
 		\item Tray
 		\item Fixture
 		\item Output
@@ -273,7 +276,123 @@
 
 \section{Model}
 
+\subsection{Tasks}
+\frame{
+	\frametitle{Model}
+}
+
+\frame{
+	\frametitle{Model}
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (t2) [task, minimum width=2cm, right = of t1] {Task2};
+		\node (t3) [task, minimum width=2cm, right = of t2] {Task3};
+		\node (t4) [task, minimum width=2cm, right = of t3] {Task4};
+		\node (t5) [task, minimum width=2cm, right = of t4] {Task5};
+	\end{tikzpicture}
+	\note{
+		\begin{itemize}
+			\item Vi vill schemalägga tasks
+			\item En task kommer efter den andra
+			\item Men tasks:en sker på olika ställen i rummet $\rightarrow$ det tar tid att flytta sig mellan dem $\rightarrow$ måste räkna med det
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2};
+		\node (mt3) [task, minimum width=2cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3};
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4};
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5};
+	\end{tikzpicture}
+	}
+	\note{
+		\begin{itemize}
+			\item Hur lång tid det tar beror på vilken task som kommer innan $\rightarrow$ vi måste veta vilken task som kommer innan, \emph{predecessor}
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2}
+		edge[arrow, bend right=60] (t1);
+		\node (mt3) [task, minimum width=2cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3}
+		edge[arrow, bend right=60] (t2);
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4}
+		edge[arrow, bend right=60] (t3);
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5}
+		edge[arrow, bend right=60] (t4);
+	\end{tikzpicture}
+	}
+	\note{
+	\begin{itemize}
+		\item För att se till att detta uppfylls kan constraintet \texttt{circuit} användas
+		\item Skapar en Hamiltonian circuit
+		\item Uppnår det genom att koppla ihop första och sista noden. \item Constraint som säger att task måste komma efter sin predecessor $\rightarrow$ Första och sista task:en kan inte kopplas ihop
+	\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (sink) [task, minimum width=2cm] {Sink};
+		\node (mt1) [task, minimum width=2cm, right = of sink] {Move};
+		\node (t1) [task, minimum width=2cm, right = of mt1] {Task1}
+		edge[arrow, bend right=60] (sink);
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2}
+		edge[arrow, bend right=60] (t1);
+		\node (mt3) [task, minimum width=2cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3}
+		edge[arrow, bend right=60] (t2);
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4}
+		edge[arrow, bend right=60] (t3);
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5}
+		edge[arrow, bend right=60] (t4);
+		\node (mbucket) [task, minimum width=2cm, right = of t5] {Move};
+		\node (bucket) [task, minimum width=2cm, right = of mbucket] {Bucket}
+		edge[arrow, bend right=60] (t5)
+		edge[reversearrow, bend left=50] (sink);
+	\end{tikzpicture}
+	}
+	\note{
+	\begin{itemize}
+		\item Introducerar sink node/startTask \& bucket node/goalTask
+		\item Hintintills 4 saker att schemalägga: tasks, moves, predecessors \& sink/bucket
+		\item Men detta måste göras för varje mackin, tasks måste fördelas
+	\end{itemize}
+	}
+}
+
 \subsection{Components}
+\frame{
+	\frametitle{Model}
+	Components
+	\begin{itemize}
+		\item Primitive components
+		\item Sub-assemblies
+	\end{itemize}
+}
 
 \subsection{Storage Mediums}
 \frame{
@@ -422,6 +541,12 @@
 		}
 	\end{figure}
 	\end{adjustwidth}
+		\note{
+			\begin{itemize}
+				\item Individuella tasks får inte överlappa på fixtures
+				\item Tiden då fixtures är upptagna får inte överlappa, identifiera put och take för en komponent och komponent som har put komponenten som en del i dess sub-assembly
+			\end{itemize}
+		}
 }
 
 \frame{

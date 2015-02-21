@@ -10,6 +10,8 @@
 \usepackage{tikz}
 \usetikzlibrary{calc, shapes, backgrounds, positioning, matrix, shapes.multipart}
 \usepackage{multimedia}
+\usepackage{multicol}
+\usepackage{pgfplots}
 
 \usepackage[beamer,customcolors]{hf-tikz}
 \tikzset{hl/.style={
@@ -41,6 +43,17 @@
 \tikzstyle{arrow} = [thick,->,>=stealth]
 \tikzstyle{reversearrow} = [thick,<-,>=stealth]
 
+\newcommand{\putindeepbox}[2][0.7\baselineskip]{{%
+    \setbox0=\hbox{#2}%
+    \setbox0=\vbox{\noindent\hsize=\wd0\unhbox0}
+    \@tempdima=\dp0
+    \advance\@tempdima by \ht0
+    \advance\@tempdima by -#1\relax
+    \dp0=\@tempdima
+    \ht0=#1\relax
+    \box0
+}}
+
 \begin{document}
 \title{Task scheduling for dual-arm industrial robots through constraint programming}
 \subtitle{MiniZinc modeling and solver comparison}
@@ -53,7 +66,9 @@
 
 \begin{frame}
 \frametitle{Outline}
+\begin{multicols}{2}
 \tableofcontents
+\end{multicols}
 \end{frame}
 
 \section{Introduction}
@@ -217,7 +232,6 @@
 		\begin{itemize}
 			\item En task kommer efter den andra
 			\item Men tasks:en sker på olika ställen i rummet $\rightarrow$ det tar tid att flytta sig mellan dem $\rightarrow$ måste räkna med det
-			\item 
 		\end{itemize}
 	}
 }
@@ -1265,6 +1279,8 @@
 			\item 71761 - 0:01:11
 			\item 71186 - 0:01:11
 		\end{itemize}
+		Vi kan se att i nästan alla fall hjälper filtrena i någon grad\\
+		Vilket filter bäst är svårt att säga, temp verkar bäst i flesta fall
 	}
 
 \note<2>{
@@ -1287,6 +1303,69 @@ Hittar 1 lösning, den optimala, på ungefär samma tid som den tidigare
 Hittar 2 lösningar direkt
 }
 
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/int_vs_time}
+	}
+	\caption{\# integer variables vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/bool_vs_time}
+	}
+	\caption{\# boolean variables vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/tot_vs_time}
+	}
+	\caption{Total \# of variables vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/arr_vs_time}
+	}
+	\caption{\# arrays vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/const_vs_time}
+	}
+	\caption{\# constraints vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/reif_vs_time}
+	}
+	\caption{\% reified vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\noindent\null\hfill\resizebox{0.3\textwidth}{!}{\input{Plots/int_vs_time}}
+	    \hfill \resizebox{0.3\textwidth}{!}{\input{Plots/bool_vs_time}} \hfill \resizebox{0.3\textwidth}{!}{\input{Plots/tot_vs_time}} \hfill \null
+	  \noindent\null\hfill\resizebox{0.3\textwidth}{!}{\input{Plots/arr_vs_time}} \hfill
+	    \resizebox{0.3\textwidth}{!}{\input{Plots/const_vs_time}} \hfill \resizebox{0.3\textwidth}{!}{\input{Plots/reif_vs_time}} \hfill\null
+\end{figure}
 }
 
 \end{document}

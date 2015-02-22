@@ -80,7 +80,7 @@
 		\begin{column}[C]{5cm} % each column can also be its own environment
 			\begin{itemize}
 				\item Dual-armed robot
-				\item Flexible
+				\item Flexible - multiple tools
 				\item Fine motor skills
 					\note[item]{Montera endast mellan maskiner utan tray}
 			\end{itemize}
@@ -93,16 +93,48 @@
 		   
 		\end{column}
 	\end{columns}
+	
+	\note{
+	Mycket av produktion i dagens samhälle automatiseras \& många produkter serier har kort livsspann $\rightarrow$ produktionen av nya serier behöver anpassas relativt snabbt $\rightarrow$ YuMi
+	}
 }
 
 \subsection{Project goal}
 \frame{
 	\frametitle{Introduction - Project goal}
+	\begin{itemize}
+		\item Constraint Programming model for dual-armed robots such as YuMi\textsuperscript\textregistered
+		\begin{itemize}
+			\item Change tools
+			\item Carry only one component at the time
+			\item Same duration for tool changes, regardless of direction
+			\item Use trays, fixtures and outputs
+		\end{itemize}
+		\item Implement the model in MiniZinc
+		\item Test the model with 6 solvers and compare the results
+	\end{itemize}
 }
 
 \subsection{MiniZinc}
 \frame{
 	\frametitle{Introduction - MiniZinc}
+	\begin{itemize}
+		\item Declarative language
+		\item Medium level
+		\item Translates to FlatZinc
+		\item Aims to be standard
+		\item Many solvers can read FlatZinc
+	\end{itemize}
+	
+	\note{
+		\begin{itemize}
+			\item Declarative language + declarative paradigm = good fit
+			\item Many CP languages available, based on imperative languages = messy syntax
+			\item Medium level: Högt nog för att formulera komplicerade uttryck, tex. for-loopar, lågt nog för att läät kunna översättas till FlatZink
+			\item FlatZink låg nivå $\rightarrow$ läses lätt in av solvers
+			\item Siktar på att bli standard, lätt att läsa in FlatZinc  $\rightarrow$ relativt många solvers kan läsa in modeller
+		\end{itemize}
+	}
 }
 
 \section{Case Study}
@@ -214,7 +246,7 @@
 	\begin{itemize}
 		\item Vill schemalägg tasks som ett job shop problem
 		\item I literatur jobs innehåller operations, här tittar vi på 1 job och operations kallar vi tasks
-		\item Varje jobb can hanteras av vilken maskin som helst $\rightarrow$ Flexible Job Shop Scheduling
+		\item Varje jobb kan hanteras av vilken maskin som helst $\rightarrow$ Flexible Job Shop Scheduling
 	\end{itemize}
 	}
 }
@@ -231,7 +263,7 @@
 	\note{
 		\begin{itemize}
 			\item En task kommer efter den andra
-			\item Men tasks:en sker på olika ställen i rummet $\rightarrow$ det tar tid att flytta sig mellan dem $\rightarrow$ måste räkna med det
+			\item Längden på en task, \emph{duration}, tillhandahålls av den som skapar assemblyn
 		\end{itemize}
 	}
 }
@@ -253,9 +285,8 @@
 	}
 	\note{
 		\begin{itemize}
-			\item Tasks behöver olika tools $\rightarrow$ måste utföra tool change
-			\item utförs mellan två tasks $\rightarrow$ tiden att röra sig mellan två tasks tar längre tid $\rightarrow$ bakar in tool change tiden i move
-			\item Det förekommer ett tool change om tiden för move tar längre tid än det egentligen skulle göra
+			\item Men tasks:en sker på olika ställen i rummet $\rightarrow$ det tar tid att flytta sig mellan dem $\rightarrow$ måste räkna med det
+			\item Tider för move mellan tasks tillhandahålls genom en tidsmatris av den som vill schemalägga
 		\end{itemize}
 	}
 }
@@ -280,7 +311,9 @@
 	}
 	\note{
 		\begin{itemize}
-			\item Hur lång tid det tar beror på vilken task som kommer innan $\rightarrow$ vi måste veta vilken task som kommer innan, \emph{predecessor}
+			\item Tasks behöver olika tools $\rightarrow$ måste utföra tool change
+			\item utförs mellan två tasks $\rightarrow$ tiden att röra sig mellan två tasks tar längre tid $\rightarrow$ bakar in tool change tiden i move
+			\item Det förekommer ett tool change om tiden för move tar längre tid än det egentligen skulle göra
 		\end{itemize}
 	}
 }
@@ -308,7 +341,9 @@
 	\end{tikzpicture}
 	}
 	\note{
-	\begin{itemize}
+	\begin{itemize}			
+		\item Hur lång tid det tar beror på vilken task som kommer innan $\rightarrow$ vi måste veta vilken task som kommer innan, \emph{predecessor}
+		\item Tidsmatrisen tillsammans med tiderna för att byta mellan tools = ny matris med alla möjliga moves inkl. tool change
 		\item Detta = Job Shop Problem with sequence-dependent setup times
 		\item För att se till att detta uppfylls kan constraintet \texttt{circuit} användas
 		\item Skapar en Hamiltonian circuit
@@ -350,8 +385,40 @@
 	\note{
 	\begin{itemize}
 		\item Introducerar sink node/startTask \& bucket node/goalTask
-		\item Hintintills 3 saker att schemalägga: tasks, moves, predecessors
-		\item Men detta måste göras för varje mackin, tasks måste fördelas
+		\item Men detta måste göras för varje maskin, tasks måste fördelas $\rightarrow usingMachine(t) \rightarrow$ task och predecessor måste vara på samma maskin 
+	\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (s1) [task, minimum width=2cm] {Sink1};
+		\node (d1) [minimum width=2cm, right = of s1] {$\ldots$}
+		edge[arrow, bend right=60] (s1);
+		\node (b1) [task, minimum width=2cm, right = of d1] {Bucket1}
+		edge[arrow, bend right=60] (d1);
+		\node (s2) [task, minimum width=2cm, right = of b1] {Sink2}
+		edge[arrow, bend right=60] (b1);
+		\node (d2) [minimum width=2cm, right = of s2] {$\ldots$}
+		edge[arrow, bend right=60] (s2);
+		\node (b2) [task, minimum width=2cm, right = of d2] {Bucket2}
+		edge[arrow, bend right=60] (d2);
+		\node (s3) [task, minimum width=2cm, right = of b2] {Sink3}
+		edge[arrow, bend right=60] (b2);
+		\node (d3) [minimum width=2cm, right = of s3] {$\ldots$}
+		edge[arrow, bend right=60] (s3);
+		\node (b3) [task, minimum width=2cm, right = of d3] {Bucket3}
+		edge[arrow, bend right=60] (d3)
+		edge[reversearrow, bend left=50] (s1);
+		
+	\end{tikzpicture}
+	}
+	\note{
+	\begin{itemize}
+		\item För att göra det för flear maskiner: Istället för lika många circuits som maskiner, kopplar ihop alla curcuits till en lång circuit
+		\item Vi har alltså 4 variabler att schemalägga: tasks, moves, predecessors \& usingMachine
 	\end{itemize}
 	}
 }
@@ -591,6 +658,17 @@
 }
 
 \subsection{Tools}
+
+\frame{
+	\frametitle{Tools}
+	\begin{itemize}
+		\item Tools available
+		\item Tool used by tasks
+	\end{itemize}
+	
+	\note{Antar att det finns en uppsättning av sagda tools för varje maskin}
+}
+
 \frame{
 	\frametitle{Tools}
 	\begin{adjustwidth}{-0.5cm}{}
@@ -658,7 +736,12 @@
 			}
 		\end{figure}
 		\end{adjustwidth}
-		\note{Notera att "Lift top-button" inte har tool specificerad}
+		\note{
+		\begin{itemize}
+			\item Notera att "Lift top-button" inte har tool specificerad
+		\end{itemize}
+		
+		}
 }
 
 \subsection{Labeling}
@@ -1107,12 +1190,9 @@
 	\item Predecessor filter
 	\end{itemize}
 	\note{
-	\footnotesize
 		Temporal filter:
 		\begin{itemize}
-			\item Tider för move mellan tasks vet vi genom att en tidsmatris tillhandahålls av den som vill schemalägga
-			\item Den tillsammans med tiderna för att byta mellan tools = ny matris med alla möjliga moves inkl. tool change
-			\item $\rightarrow$ vi kan räkna ut värsta och bästa fallet för hela assemblyn
+			\item Matris med alla möjliga moves $\rightarrow$ vi kan räkna ut värsta och bästa fallet för hela assemblyn
 			\item mha. detta kan vi begränsa startTime för tasks
 		\end{itemize}
 		
@@ -1131,10 +1211,30 @@
 	\frametitle{Evaluation}
 	\begin{itemize}
 		\item Test with 6 solvers
+		\begin{itemize}
+			\item Solver time
+			\item FlatZinc file
+		\end{itemize}
 		\item MiniZinc 1.6 \& 2.0.1
 		\item Combination of filters
 	\end{itemize}
 	
+	\note{
+		FlatZinc file:
+		\begin{itemize}
+			\item Antal variabler
+			\item Antal constraints
+			\item Andel av constraints som är reified constraints
+		\end{itemize}
+		
+		Reified:
+		\begin{itemize}
+			\item Kopplar ihop ett constraint med en variable("sanningsvärde") $\rightarrow$ är variabeln sann gäller constraint:et, är varibeln falsk gäller inte constraint:et, och vise versa
+			\item Används ofta för implikationer och ekvivalenser
+			\item Kan göra söktiden längre
+			\item Aktivt unvikit direkta användningar
+		\end{itemize}
+	}
 }
 
 \subsection{Solvers}
@@ -1377,6 +1477,18 @@ Hittar 2 lösningar direkt
 		\item<4-> Best performance: Gecode, all filters, MiniZinc 2.0.1
 		\item<5-> Filters presented have a positive impact on runtime
 		\item<6-> No relation between FlatZinc output and solver runtime
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Further work}
+	\begin{itemize}
+		\item Test the result on a real robot
+		\note[item]{Kanske dyker upp problem missade. T.ex. kollisioner}
+		\item Further testing of the filters
+		\note[item]{Endast testat filter i grupp, alla filter kanske inte behövs, bygga vidare på dem som fungerade bäst}
+		\item More realistic representation of tools available
+		\note[item]{Vi antar att det finns en uppsättning tools till varje maskin, så kanske inte är fallet, finns kanske bara ett visst antal tools tillgängliga}
 	\end{itemize}
 }
 

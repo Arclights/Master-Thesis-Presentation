@@ -1,0 +1,725 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage{default}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{geometry}
+\usepackage{changepage}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{calc, shapes, backgrounds, positioning, matrix, shapes.multipart}
+\usepackage{multimedia}
+\usepackage{multicol}
+\usepackage{pgfplots}
+
+\usepackage[beamer,customcolors]{hf-tikz}
+\tikzset{hl/.style={
+    set fill color=cyan!50,
+    set border color=cyan,
+    disable rounded corners=true,
+    above offset=0.25,
+    below offset=-0.1,
+  }
+}
+
+\usetheme[compress]{Berlin}
+
+\usepackage{pgfpages}
+%\setbeameroption{show notes}
+%\setbeameroption{show notes on second screen=right}
+
+\usebackgroundtemplate
+{%
+\tikz[overlay,remember picture] \node[opacity=0.3, at=(current page.south east), xshift=-1cm, yshift=1cm] {
+    \includegraphics[width=0.4\paperwidth, keepaspectratio, clip, trim= 0 55mm 0 0]{Images/LundUniversity_C2line_RGB.png}
+};
+}
+
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+
+
+\tikzstyle{task} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=white]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{reversearrow} = [thick,<-,>=stealth]
+
+\newcommand{\putindeepbox}[2][0.7\baselineskip]{{%
+    \setbox0=\hbox{#2}%
+    \setbox0=\vbox{\noindent\hsize=\wd0\unhbox0}
+    \@tempdima=\dp0
+    \advance\@tempdima by \ht0
+    \advance\@tempdima by -#1\relax
+    \dp0=\@tempdima
+    \ht0=#1\relax
+    \box0
+}}
+
+\begin{document}
+\title{Task scheduling for dual-arm industrial robots through constraint programming}
+\subtitle{MiniZinc modeling and solver comparison}
+\author{Tommy Kvant}
+\institute{Institute of Computer Science\\ Lund University}
+\subject{Computer Science}
+
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Outline}
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\end{frame}
+
+\section{Introduction}
+
+\subsection{Project goal}
+\frame{
+	\frametitle{Introduction - Project goal}
+	\begin{itemize}
+		\item Constraint Programming model for dual-armed robots such as YuMi\textsuperscript\textregistered
+		\begin{itemize}
+			\item Change tools
+			\item Carry only one component at the time
+			\item Same duration for tool changes, regardless of direction
+			\item Use trays, fixtures and outputs
+		\end{itemize}
+		\item Implement the model in MiniZinc
+		\item Test the model with 6 solvers and compare the results
+	\end{itemize}
+}
+
+\subsection{MiniZinc}
+\frame{
+	\frametitle{Introduction - MiniZinc}
+	\begin{itemize}
+		\item Declarative language
+		\item Medium level
+		\item Translates to FlatZinc
+		\item Aims to be standard
+		\item Many solvers can read FlatZinc
+	\end{itemize}
+	
+	\note{
+		\begin{itemize}
+			\item Declarative language + declarative paradigm = good fit
+			\item Many CP languages available, based on imperative languages = messy syntax
+			\item Medium level: Högt nog för att formulera komplicerade uttryck, tex. for-loopar, lågt nog för att lätt kunna översättas till FlatZink
+			\item FlatZink låg nivå $\rightarrow$ läses lätt in av solvers
+			\item Siktar på att bli standard, lätt att läsa in FlatZinc  $\rightarrow$ relativt många solvers kan läsa in modeller
+		\end{itemize}
+	}
+}
+
+\subsection{YuMi\textsuperscript\textregistered}
+\frame{
+	\frametitle{Introduction - YuMi\textsuperscript\textregistered}
+	\begin{columns}[C] % contents are top vertically aligned
+		\begin{column}[C]{5cm} % each column can also be its own environment
+			\begin{itemize}
+				\item Dual-armed robot
+				\item Flexible - multiple tools
+				\item Fine motor skills
+					\note[item]{Montera endast mellan maskiner utan tray}
+			\end{itemize}
+		\end{column}
+		\begin{column}[C]{5cm} % alternative top-align that's better for graphics
+			\begin{figure}
+				\includegraphics[height=4cm]{Images/YuMi.jpg}
+				\caption{Photo: ABB}
+			\end{figure}
+		   
+		\end{column}
+	\end{columns}
+	
+	\note{
+	Mycket av produktion i dagens samhälle automatiseras \& många produkter serier har kort livsspann $\rightarrow$ produktionen av nya serier behöver anpassas relativt snabbt $\rightarrow$ YuMi
+	}
+}
+
+\section{Case Study}
+\frame{
+	\frametitle{Case Study}
+	\includegraphics[width=\textwidth]{Images/buttonbox.png}
+	\note{Skruvarna inte med}
+}
+
+
+\frame{
+	\frametitle{Case Study}
+	\movie[height = 0.6 \textwidth,width = 1.0 \textwidth]{}{assembly.mp4}
+}
+
+\frame{
+	\frametitle{Physical Entities}
+	\begin{itemize}
+		\item Machines
+		\item Tools
+		\item Components
+		\item Tray
+		\item Fixture
+		\item Output
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Assembly}
+	\begin{adjustwidth}{-0.5cm}{}
+	\begin{figure}
+		\resizebox{\textwidth}{0.8\textheight}{
+			\begin{tikzpicture}[node distance=2cm]
+			\node (1) [task] {Take top};
+			\node (2) [task, right of=1, xshift=2.5cm] {Put top in fixture};
+			
+			\node (3) [task, below of=1] {Take button};
+			\node (4) [task, below of=2] {Mount button on top};
+			
+			\node (5) [task, xshift=2.5cm, right of=4] {Angle top-button};
+			
+			\node (6) [task, right of=5, xshift=3cm, yshift=1cm] {Lift top-button, hold};
+			\node (7) [task, below of=6] {Lift top-button, support};
+			
+			\node (8) [task, right of=7, xshift=3.5cm, yshift=1cm] {Turn top-button};
+			
+			\node (10) [task, below of=8] {Mount nut, hold};
+			\node (11) [task, below of=10] {Mount nut, mount};
+			
+			\node (9) [task, below of=11] {Take nut};
+			
+			\node (12) [task, left of=11, xshift=-4cm, yshift=1cm] {Fixate top-button-nut};
+			
+			\node (13) [task, left of=12, xshift=-9.5cm] {Put top-button-nut in top tray};
+			\node (14) [task, below of=13] {Take top-button-nut from top tray};
+			
+			\node (15) [task, below of=9, yshift=-1.5cm] {Take switch};
+			\node (16) [task, left of=15, xshift=-3cm] {Mount switch};
+			
+			\node (17) [task, below of=15] {Take bottom};
+			\node (18) [task, below of=16] {Put bottom in fixture};
+			
+			\node (19) [task, left of=16, xshift=-3.5cm] {Take bottom-switch};
+			
+			\node (20) [task, left of=19, xshift=-5cm] {Put bottom-switch on table};
+			
+			\node (21) [task, above of=20] {Mount top-button-nut on bottom-switch};
+			
+			\draw [arrow] (1) -- (2);
+			\draw [arrow] (3) -- (4);
+			\draw [arrow] (2) -- (4);
+			\draw [arrow] (4) -- (5);
+			\draw [arrow] (5) -- (6);
+			\draw [arrow] (5) -- (7);
+			\draw [arrow] (7) -- (8);
+			\draw [arrow] (6) -- (8);
+			\draw [arrow] (8) -- (10);
+			\draw [arrow] (10) -- (12);
+			\draw [arrow] (9) -- (11);
+			\draw [arrow] (11) -- (12);
+			\draw [arrow] (12) -- (13);
+			\draw [arrow] (13) -- (14);
+			\draw [arrow] (15) -- (16);
+			\draw [arrow] (17) -- (18);
+			\draw [arrow] (18) -- (16);
+			\draw [arrow] (16) -- (19);
+			\draw [arrow] (19) -- (20);
+			\draw [arrow] (20) -- (21);
+			\draw [arrow] (14) -- (21);
+			
+			\end{tikzpicture}
+		}
+	\end{figure}
+	\end{adjustwidth}
+}
+
+\section{Model}
+
+\subsection{Tasks}
+\frame{
+	\frametitle{Model}
+	Job Shop Problem
+	\begin{itemize}
+		\item $n$ jobs, varying size
+		\item $m$ identical machines
+		\item NP-complete for $m\geq2$ and $n\geq3$
+	\end{itemize}
+	\note{
+	\begin{itemize}
+		\item Vill schemalägg tasks som ett job shop problem
+		\item I literatur jobs innehåller operations, här tittar vi på 1 job och operations kallar vi tasks
+		\item Varje jobb kan hanteras av vilken maskin som helst $\rightarrow$ Flexible Job Shop Scheduling
+	\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (t2) [task, minimum width=2cm, right = of t1] {Task2};
+		\node (t3) [task, minimum width=2cm, right = of t2] {Task3};
+		\node (t4) [task, minimum width=2cm, right = of t3] {Task4};
+		\node (t5) [task, minimum width=2cm, right = of t4] {Task5};
+	\end{tikzpicture}
+	\note{
+		\begin{itemize}
+			\item En task kommer efter den andra
+			\item Längden på en task, \emph{duration}, tillhandahålls av den som skapar assemblyn
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2};
+		\node (mt3) [task, minimum width=2cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3};
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4};
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5};
+	\end{tikzpicture}
+	}
+	\note{
+		\begin{itemize}
+			\item Men tasks:en sker på olika ställen i rummet $\rightarrow$ det tar tid att flytta sig mellan dem $\rightarrow$ måste räkna med det
+			\item Tider för move mellan tasks tillhandahålls genom en tidsmatris av den som vill schemalägga
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2};
+		\node (mt3) [task, minimum width=3cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3};
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4};
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5};
+		
+		\node(expl) [below = of mt3, yshift=-1cm]{Tool change}
+		edge [arrow] (mt3);
+	\end{tikzpicture}
+	}
+	\note{
+		\begin{itemize}
+			\item Tasks behöver olika tools $\rightarrow$ måste utföra tool change
+			\item utförs mellan två tasks $\rightarrow$ tiden att röra sig mellan två tasks tar längre tid $\rightarrow$ bakar in tool change tiden i move
+			\item Det förekommer ett tool change om tiden för move tar längre tid än det egentligen skulle göra
+			\item Tidsmatrisen tillsammans med tiderna för att byta mellan tools = ny matris med alla möjliga moves inkl. tool change
+		\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (t1) [task, minimum width=2cm] {Task1};
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2}
+		edge[arrow, bend right=60] (t1);
+		\node (mt3) [task, minimum width=3cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3}
+		edge[arrow, bend right=60] (t2);
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4}
+		edge[arrow, bend right=60] (t3);
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5}
+		edge[arrow, bend right=60] (t4);
+				
+		\node(expl) [below = of mt3, yshift=-1cm]{Tool change}
+		edge [arrow] (mt3);
+	\end{tikzpicture}
+	}
+	\note{
+	\begin{itemize}			
+		\item Hur lång tid det tar beror på vilken task som kommer innan $\rightarrow$ vi måste veta vilken task som kommer innan, \emph{predecessor}
+		\item Detta = Job Shop Problem with sequence-dependent setup times
+		\item För att se till att detta uppfylls kan constraintet \texttt{circuit} användas
+		\item Skapar en Hamiltonian circuit
+		\item Uppnår det genom att koppla ihop första och sista noden. \item Constraint som säger att task måste komma efter sin predecessor $\rightarrow$ Första och sista task:en kan inte kopplas ihop
+	\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (sink) [task, minimum width=2cm] {Sink};
+		\node (mt1) [task, minimum width=2cm, right = of sink] {Move};
+		\node (t1) [task, minimum width=2cm, right = of mt1] {Task1}
+		edge[arrow, bend right=60] (sink);
+		\node (mt2) [task, minimum width=2cm, right = of t1] {Move};
+		\node (t2) [task, minimum width=2cm, right = of mt2] {Task2}
+		edge[arrow, bend right=60] (t1);
+		\node (mt3) [task, minimum width=3cm, right = of t2] {Move};
+		\node (t3) [task, minimum width=2cm, right = of mt3] {Task3}
+		edge[arrow, bend right=60] (t2);
+		\node (mt4) [task, minimum width=2cm, right = of t3] {Move};
+		\node (t4) [task, minimum width=2cm, right = of mt4] {Task4}
+		edge[arrow, bend right=60] (t3);
+		\node (mt5) [task, minimum width=2cm, right = of t4] {Move};
+		\node (t5) [task, minimum width=2cm, right = of mt5] {Task5}
+		edge[arrow, bend right=60] (t4);
+		\node (mbucket) [task, minimum width=2cm, right = of t5] {Move};
+		\node (bucket) [task, minimum width=2cm, right = of mbucket] {Bucket}
+		edge[arrow, bend right=60] (t5)
+		edge[reversearrow, bend left=50] (sink);
+		
+				
+		\node(expl) [below = of mt3, yshift=-1cm]{Tool change}
+		edge [arrow] (mt3);
+	\end{tikzpicture}
+	}
+	\note{
+	\begin{itemize}
+		\item Introducerar sink node/startTask \& bucket node/goalTask
+		\item Men detta måste göras för varje maskin, tasks måste fördelas $\rightarrow usingMachine(t) \rightarrow$ task och predecessor måste vara på samma maskin 
+	\end{itemize}
+	}
+}
+
+\frame{
+	\frametitle{Model}
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[node distance=0cm]
+		\node (s1) [task, minimum width=2cm] {Sink1};
+		\node (d1) [minimum width=2cm, right = of s1] {$\ldots$}
+		edge[arrow, bend right=60] (s1);
+		\node (b1) [task, minimum width=2cm, right = of d1] {Bucket1}
+		edge[arrow, bend right=60] (d1);
+		\node (s2) [task, minimum width=2cm, right = of b1] {Sink2}
+		edge[arrow, bend right=60] (b1);
+		\node (d2) [minimum width=2cm, right = of s2] {$\ldots$}
+		edge[arrow, bend right=60] (s2);
+		\node (b2) [task, minimum width=2cm, right = of d2] {Bucket2}
+		edge[arrow, bend right=60] (d2);
+		\node (s3) [task, minimum width=2cm, right = of b2] {Sink3}
+		edge[arrow, bend right=60] (b2);
+		\node (d3) [minimum width=2cm, right = of s3] {$\ldots$}
+		edge[arrow, bend right=60] (s3);
+		\node (b3) [task, minimum width=2cm, right = of d3] {Bucket3}
+		edge[arrow, bend right=60] (d3)
+		edge[reversearrow, bend left=50] (s1);
+		
+	\end{tikzpicture}
+	}
+	\note{
+	\begin{itemize}
+		\item För att göra det för flear maskiner: Istället för lika många circuits som maskiner, kopplar ihop alla curcuits till en lång circuit
+		\item Vi har alltså 4 variabler att schemalägga: start time för tasks, start time för moves, predecessors \& usingMachine
+	\end{itemize}
+	}
+}
+
+\subsection{Defining tasks}
+
+\frame{
+\frametitle{Defining Tasks}
+	\begin{itemize}
+		\item Components
+		\item Tray, Fixture, Output
+		\item Tool
+		\item Action - Taking, Putting, Mounting, Moving
+	\end{itemize}
+	
+	\note{
+		\begin{itemize}
+			\item Tray, Fixture, Output - Får inte överlappa
+			\item Tool - Om det behövs ett visst tool
+			\item Moving - För att skapa mer komplexa moves och använda två maskiner för ett move, t.ex. som i vårt case
+			\item Taking, Putting, Mounting - Kan sätta upp constraints mellan. Kan inte göra det med Moving, löser bland annat det genom: $\downarrow$
+		\end{itemize}
+	}
+}
+
+\subsection{Grouping}
+
+\frame{
+	\frametitle{Model}
+	Group tasks
+	\begin{itemize}
+		\item Ordered group
+		\item Concurrent group
+	\end{itemize}
+	\note{
+		\begin{itemize}
+			\item Task som ska hända efter varandra i en viss ordning på samma maskin
+			\item \item Representera en task med flera maskiner
+		\end{itemize}
+	}
+}
+
+\subsection{Filter}
+\frame{
+	\frametitle{Filter}
+	\begin{itemize}
+	\item Temporal filter
+	\item Predecessor filter
+	\end{itemize}
+	\note{
+		Filtrera domäner\\
+		Temporal filter:
+		\begin{itemize}
+			\item Matris med alla möjliga moves $\rightarrow$ vi kan räkna ut värsta och bästa fallet för hela assemblyn
+			\item mha. detta kan vi begränsa startTime för tasks
+		\end{itemize}
+		
+		Predecessor filter:
+		\begin{itemize}
+			\item Vi vet att put och mount tasks inte kan komma först, då komponenten måste plockas upp först $\rightarrow pred(putTask/mountTask)\neq startTask$
+			\item Då allting måste sitta i outputs i slutet av assemblyn $\rightarrow pred(goalTask)\neq takeTask$
+			\item Tasks som använder components som är sub-components i en annan task måste ske innan den tasken $\rightarrow$ inte ha den som predecessor
+		\end{itemize}
+		
+	}
+}
+
+\section{Evaluation}
+\frame{
+	\frametitle{Evaluation}
+	\begin{itemize}
+		\item Test with 6 solvers
+		\begin{itemize}
+			\item Assembly times
+			\item Solver time
+			\item FlatZinc file
+		\end{itemize}
+		\item MiniZinc 1.6 \& 2.0.1
+		\item Combination of filters
+	\end{itemize}
+	
+	\note{
+		FlatZinc file:
+		\begin{itemize}
+			\item Antal variabler
+			\item Antal constraints
+			\item Andel av constraints som är reified constraints
+		\end{itemize}
+		
+		Reified:
+		\begin{itemize}
+			\item Kopplar ihop ett constraint med en variable("sanningsvärde") $\rightarrow$ är variabeln sann måste constraint:et gälla, är varibeln falsk kan inte constraint:et gälla, och vise versa
+			\item Används ofta för implikationer och ekvivalenser
+			\item Kan göra söktiden längre
+			\item Aktivt unvikit direkta användningar
+		\end{itemize}
+	}
+}
+
+\subsection{Solvers}
+\frame{
+	\frametitle{Criteria}
+		\begin{itemize}
+			\item FlatZinc parser
+			\item Free
+		\end{itemize}
+}
+
+\frame{
+	\frametitle{Solvers Tested}
+		\begin{itemize}
+			\item G12/FD
+			\item JaCoP
+			\item Gecode
+			\item or-tools
+			\item Opturion CPX
+			\item Choco3
+		\end{itemize}
+}
+
+\subsection{Results}
+
+\frame{
+	\frametitle{Assembly Times}
+	\Huge
+	\begin{columns}[C] % contents are top vertically aligned
+			\begin{column}[C]{5cm} % each column can also be its own environment
+			\centering
+				Manual Time\\
+				516 t.u.
+			\end{column}
+			\pause
+			\begin{column}[C]{5cm} % alternative top-align that's better for graphics
+			\centering
+				Solver Time\\
+				512 t.u.			   
+			\end{column}
+		\end{columns}
+		\note{
+			\begin{itemize}
+				\item<1-> Uppskattat från video
+				\item<1-> 1 t.u. $\neq$ 1 s. 1 t.u. $\approx$ 4 s
+				\item<2> I stort sätt samma tid
+				\item<2> Assemblyn från solver samma som handgjord
+				\item<2> Skillnad beror på när moves påbörjas i relation till andra tasks 
+			\end{itemize}
+		}
+}
+
+\frame{
+	\frametitle{Solver Time}
+
+
+	\begin{table}
+	\centering
+	\begin{adjustwidth}{-0.5cm}{}
+	\footnotesize
+	\begin{tabular}{l|c|c|c|c|c|c|c|c|}
+		\cline{2-9}
+			                               & \multicolumn{2}{c|}{Pred \& Temp} &\multicolumn{2}{c|}{Pred} & \multicolumn{2}{c|}{Temp} & \multicolumn{2}{c|}{None} \\ \cline{2-9}
+			                               & 1.6                                                           & 2.0.1                                                        & 1.6     & 2.0.1                                                                               & 1.6 & 2.0.1 & 1.6 & 2.0.1                                                                           \\ \hline
+		\multicolumn{1}{|l|}{G12/FD}       & -                                                             & \tikzmarkin<2>[hl, left offset=-0.5, right offset=0.65]{a} - & -       & - \tikzmarkend{a}                                                                   & -   & -     & -   & -                                                                               \\
+		\multicolumn{1}{|l|}{JaCoP}        & 658                                                           & \tikzmarkin<3>[hl, left offset=-0.5, right offset=0.65]{b} - & 1011156 & - \tikzmarkend{b}                                                                   & -   & -     & -   & -                                                                               \\
+		\multicolumn{1}{|l|}{Gecode}       & -                                                             & 60                                                           & -       & \tikzmarkin<4-5>[hl, left offset=-0.19, right offset=0.19]{c} 71761 \tikzmarkend{c} & -   & 99    & -   & \tikzmarkin<5>[hl, left offset=-0.19, right offset=0.19]{d}71186\tikzmarkend{d} \\
+		\multicolumn{1}{|l|}{or-tools}     & 271                                                           & !                                                            & 380     & !                                                                                   & 302 & !     & 457 & !                                                                               \\ 
+		\multicolumn{1}{|l|}{Opturion CPX} & -                                                             & !                                                            & -       & !                                                                                   & -   & !     & -   & !                                                                               \\
+		\multicolumn{1}{|l|}{Choco3}       & \tikzmarkin<6>[hl, left offset=-0.27, right offset=0.65]{e} - & -                                                            & -       & - \tikzmarkend{e}                                                                   & -   & -     & -   & -                                                                               \\ \hline
+	\end{tabular}
+	\end{adjustwidth}
+	\end{table}
+	
+	\note<1>{
+		\begin{itemize}
+			\item Tid - Solvern hittade den optimala lösningen och avslutade sökninigen $\rightarrow$ konstaterade att det var den optimala, inom 4h
+			\item ! - Fel i inläsning av FlatZinc
+			\item - - Solvern avslutade inte sökningen inom 4h, men kan ha hittat lösningar(inklusive optimal)
+			\item Notera Gecode och 2.0.1 vs 1.6
+			\item 1011156 - 0:16:51
+			\item 71761 - 0:01:11
+			\item 71186 - 0:01:11
+		\end{itemize}
+		Vi kan se att i nästan alla fall hjälper filtrena i någon grad\\
+		Vilket filter bäst är svårt att säga, temp verkar bäst i flesta fall
+	}
+
+\note<2>{
+Hittar lösning, inte optimal
+}
+
+\note<3>{
+Hittar hittar alla lösningar, inklusive optimala
+}
+
+\note<4>{
+Hittar 3 lösningar, inklusive optimala
+}
+
+\note<5>{
+Hittar 1 lösning, den optimala, på ungefär samma tid som den tidigare
+}
+
+\note<6>{
+Hittar 2 lösningar direkt
+
+\begin{itemize}
+	\item np-komplett $\rightarrow$ kan inte garatera någon lösning
+	\item Vi vet endast att de som avslutade sökningen i detta fallet kan avsluat sökninigen inom tid $\rightarrow$ vet inget om andra fall
+	\item Även de solvers som inte avlsutade sökningen kan vara av värde i andra situationer
+\end{itemize}
+}
+
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/int_vs_time}
+	}
+	\caption{\# integer variables vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/bool_vs_time}
+	}
+	\caption{\# boolean variables vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/tot_vs_time}
+	}
+	\caption{Total \# of variables vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/arr_vs_time}
+	}
+	\caption{\# arrays vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/const_vs_time}
+	}
+	\caption{\# constraints vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\resizebox{!}{0.8\textheight}{
+		\input{Plots/reif_vs_time}
+	}
+	\caption{\% reified vs time}
+\end{figure}
+}
+
+\frame{
+\begin{figure}
+	\noindent\null\hfill\resizebox{0.3\textwidth}{!}{\input{Plots/int_vs_time}}
+	    \hfill \resizebox{0.3\textwidth}{!}{\input{Plots/bool_vs_time}} \hfill \resizebox{0.3\textwidth}{!}{\input{Plots/tot_vs_time}} \hfill \null
+	  \noindent\null\hfill\resizebox{0.3\textwidth}{!}{\input{Plots/arr_vs_time}} \hfill
+	    \resizebox{0.3\textwidth}{!}{\input{Plots/const_vs_time}} \hfill \resizebox{0.3\textwidth}{!}{\input{Plots/reif_vs_time}} \hfill\null
+\end{figure}
+}
+
+\section{Conclusions}
+\subsection{Conclusions}
+\frame{
+	\frametitle{Conclusions}
+	\begin{itemize}
+		\item<2-> Model produces solution just as good as handmade solution
+		\item<3-> Solver performance varies a lot
+		\item<4-> Best performance: Gecode, all filters, MiniZinc 2.0.1
+		\item<5-> Filters presented have a positive impact on runtime
+		\item<6-> No relation between FlatZinc output and solver runtime
+	\end{itemize}
+}
+
+\frame{
+	\frametitle{Further work}
+	\begin{itemize}
+		\item Test the result on a real robot
+		\note[item]{Kanske dyker upp problem missade. T.ex. kollisioner}
+		\item Further testing of the filters
+		\note[item]{Endast testat filter i grupp, alla filter kanske inte behövs, bygga vidare på dem som fungerade bäst}
+		\item More realistic representation of tools available
+		\note[item]{Vi antar att det finns en uppsättning tools till varje maskin, så kanske inte är fallet, finns kanske bara ett visst antal tools tillgängliga}
+		\item Test solvers with more assemblies
+		\note[item]{Vi har bara resultat för denna assemblyn, resultat kanske varierar beroende på assembly}
+	\end{itemize}
+}
+
+\end{document}
